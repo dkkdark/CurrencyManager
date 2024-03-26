@@ -1,10 +1,13 @@
 package com.kseniabl.currencymanager.presentation.exchange_rates
 
+import android.os.Build
+import android.os.Bundle
 import android.util.Log
+import androidx.lifecycle.AbstractSavedStateViewModelFactory
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
-import androidx.lifecycle.viewmodel.CreationExtras
+import androidx.savedstate.SavedStateRegistryOwner
 import com.kseniabl.currencymanager.domain.model.CurrencyModel
 import com.kseniabl.currencymanager.domain.use_case.GetExchangeRatesUseCase
 import com.kseniabl.currencymanager.presentation.exchange_rates.adapter.CurrencyRecycleViewAdapter
@@ -12,12 +15,19 @@ import com.kseniabl.currencymanager.presentation.processResult
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import java.text.SimpleDateFormat
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
+import java.util.Date
+import java.util.Locale
 
 class CurrencyViewModel(
+    private val savedStateHandle: SavedStateHandle,
     private val getExchangeRates: GetExchangeRatesUseCase
 ) : ViewModel(), CurrencyRecycleViewAdapter.Listener {
 
@@ -29,11 +39,19 @@ class CurrencyViewModel(
 
     private val _observeCurrencyEvery30Seconds = MutableStateFlow(true)
 
+    val time: StateFlow<String> =
+        savedStateHandle.getStateFlow("currentTime", "")
+
+    private fun setCurrentTime(time: String) {
+        savedStateHandle["currentTime"] = time
+    }
+
     private fun getCurrencies() {
         viewModelScope.launch(Dispatchers.IO) {
             getExchangeRates(_observeCurrencyEvery30Seconds.value).collect {
                 it.processResult(
                     getValue = {
+                        setCurrentTime(getCurrentTime())
                         // If _currencies does not update, it means that the list remain the same
                         _currencies
                     },
@@ -57,6 +75,17 @@ class CurrencyViewModel(
         }
     }
 
+    private fun getCurrentTime(): String {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val currentDateTime = LocalDateTime.now()
+            val formatter = DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm:ss")
+            currentDateTime.format(formatter)
+        } else {
+            val currentDateTime = Date()
+            val formatter = SimpleDateFormat("dd.MM.yyyy HH:mm:ss", Locale.getDefault())
+            formatter.format(currentDateTime)
+        }
+    }
 
     sealed interface CurrencyEvent {
         data object GetCurrencies : CurrencyEvent
@@ -69,28 +98,29 @@ class CurrencyViewModel(
         data object Loading : CurrencyState
     }
 
-    // I prefer handle interactions with RecycleView in ViewModel
+    // I prefer handling interactions with RecycleView items in ViewModel
     // because they are often affect some data
     override fun onAddItemClick(item: CurrencyModel) {
         Log.i("CurrencyViewModel", "item $item was clicked")
     }
 
-    // We do not use DI, so we have to create the factory and specify all dependencies manually
     companion object {
-        val Factory: ViewModelProvider.Factory = object : ViewModelProvider.Factory {
-            @Suppress("UNCHECKED_CAST")
-            override fun <T : ViewModel> create(
-                modelClass: Class<T>,
-                extras: CreationExtras
-            ): T {
-                val getExchangeRates = GetExchangeRatesUseCase()
-
-                return CurrencyViewModel(
-                    getExchangeRates
-                ) as T
+        fun provideFactory(
+            owner: SavedStateRegistryOwner,
+            defaultArgs: Bundle? = null,
+        ): AbstractSavedStateViewModelFactory =
+            object : AbstractSavedStateViewModelFactory(owner, defaultArgs) {
+                @Suppress("UNCHECKED_CAST")
+                override fun <T : ViewModel> create(
+                    key: String,
+                    modelClass: Class<T>,
+                    handle: SavedStateHandle
+                ): T {
+                    val useCase = GetExchangeRatesUseCase()
+                    return CurrencyViewModel(handle, useCase) as T
+                }
             }
-        }
     }
-
 }
+
 

@@ -1,6 +1,7 @@
 package com.kseniabl.currencymanager.presentation
 
 import android.os.Bundle
+import android.util.Log
 import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.commit
 import androidx.fragment.app.replace
@@ -12,7 +13,10 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        setExchangeFragment()
+        if (savedInstanceState == null) {
+            Log.i("MainActivity", "fragment created")
+            setExchangeFragment()
+        }
     }
 
     private fun setExchangeFragment() {

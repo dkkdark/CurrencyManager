@@ -1,6 +1,5 @@
 package com.kseniabl.currencymanager.presentation.exchange_rates
 
-import android.os.Build
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -11,15 +10,10 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.recyclerview.widget.LinearLayoutManager
+import com.google.android.material.snackbar.Snackbar
 import com.kseniabl.currencymanager.databinding.ExchangeCurrencyFragmentBinding
 import com.kseniabl.currencymanager.presentation.exchange_rates.adapter.CurrencyRecycleViewAdapter
-import com.google.android.material.snackbar.Snackbar
 import kotlinx.coroutines.launch
-import java.text.SimpleDateFormat
-import java.time.LocalDateTime
-import java.time.format.DateTimeFormatter
-import java.util.Date
-import java.util.Locale
 
 class ExchangeRateFragment : Fragment() {
 
@@ -30,7 +24,7 @@ class ExchangeRateFragment : Fragment() {
     private lateinit var adapter: CurrencyRecycleViewAdapter
     private lateinit var linearLayoutManager: LinearLayoutManager
 
-    private val viewModel: CurrencyViewModel by viewModels { CurrencyViewModel.Factory }
+    private val viewModel: CurrencyViewModel by viewModels { CurrencyViewModel.provideFactory(this) }
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -69,11 +63,9 @@ class ExchangeRateFragment : Fragment() {
 
                             CurrencyViewModel.CurrencyState.UpdateTime -> {
                                 hideProgressBar()
-                                binding.lastUpdateTime.text = getCurrentTime()
                             }
 
                             CurrencyViewModel.CurrencyState.Loading -> {
-
                                 showProgressBar()
                             }
                         }
@@ -85,22 +77,15 @@ class ExchangeRateFragment : Fragment() {
                         adapter.submitList(it)
                     }
                 }
+                launch {
+                    viewModel.time.collect {
+                        if (it == "")
+                            viewModel.onEventListen(CurrencyViewModel.CurrencyEvent.GetCurrencies)
+                        else
+                            binding.lastUpdateTime.text = viewModel.time.value ?: ""
+                    }
+                }
             }
-        }
-
-        viewModel.onEventListen(CurrencyViewModel.CurrencyEvent.GetCurrencies)
-
-    }
-
-    private fun getCurrentTime(): String {
-        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val currentDateTime = LocalDateTime.now()
-            val formatter = DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm:ss")
-            currentDateTime.format(formatter)
-        } else {
-            val currentDateTime = Date()
-            val formatter = SimpleDateFormat("dd.MM.yyyy HH:mm:ss", Locale.getDefault())
-            formatter.format(currentDateTime)
         }
     }
 
