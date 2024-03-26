@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">CurrencyManager</string>
+    <string name="exchange_rate">Курсы валют</string>
+    <string name="currency">Валюты</string>
+</resources>

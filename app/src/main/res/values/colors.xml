@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="black">#FF000000</color>
+    <color name="white">#FFFFFFFF</color>
+    <color name="rate_value_container">#ffebf8e1</color>
+    <color name="rate_value_text">#ff69ad59</color>
+</resources>
