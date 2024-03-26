@@ -53,7 +53,7 @@ class ExchangeRateFragment : Fragment() {
         adapter.setOnClickListener(viewModel)
 
         viewLifecycleOwner.lifecycleScope.launch {
-            repeatOnLifecycle(Lifecycle.State.CREATED) {
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
                 launch {
                     viewModel.state.collect { uiState ->
                         when (uiState) {
@@ -82,7 +82,7 @@ class ExchangeRateFragment : Fragment() {
                         if (it == "")
                             viewModel.onEventListen(CurrencyViewModel.CurrencyEvent.GetCurrencies)
                         else
-                            binding.lastUpdateTime.text = viewModel.time.value ?: ""
+                            binding.lastUpdateTime.text = viewModel.time.value
                     }
                 }
             }
